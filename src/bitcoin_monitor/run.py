@@ -2,17 +2,19 @@
 
 """Command-line interface for the Bitcoin Core monitoring framework."""
 
+import asyncio
 import logging as log
 import time
 
 from .config import Config, parse_args
+from .master import Master
 
 
 def init_logger(log_level: str):
     """Initilize the logger. Use UTC-based timestamps and log to file if requested."""
 
     log.basicConfig(
-        format="%(asctime)s | %(levelname)-8s | %(message)s",
+        format="%(asctime)s | %(name)-14s | %(levelname)-8s | %(message)s",
         datefmt="%Y-%m-%dT%H:%M:%SZ",
         level=log_level,
     )
@@ -41,6 +43,8 @@ def main():
     """
 
     conf = init()
+    master = Master(conf)
+    asyncio.run(master.run())
 
 
 if __name__ == "__main__":

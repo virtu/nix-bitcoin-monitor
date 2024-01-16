@@ -18,6 +18,20 @@ in
         description = mdDoc "Log verbosity for console.";
       };
 
+      bitcoinRpcUser = mkOption {
+        type = types.str;
+        default = "bitcoin";
+        example = "username";
+        description = mdDoc "Username for Bitcoin's RPC API.";
+      };
+
+      bitcoinRpcPass = mkOption {
+        type = types.str;
+        default = "bitcoin";
+        example = "passw0rd";
+        description = mdDoc "Password for Bitcoin's RPC API.";
+      };
+
       resultPath = mkOption {
         type = types.path;
         default = "/home/nix-bitcoin-monitor/";
