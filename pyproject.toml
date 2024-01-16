@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "bitcoin-monitor"
+version = "1.0.0"
+description = "Monitoring infrastructure for Bitcoin Core"
+authors = ["virtu <virtu@cryptic.to>"]
+license = "AGPLv3"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.10"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+bitcoin-monitor = "bitcoin_monitor.run:main"
