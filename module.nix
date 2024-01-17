@@ -38,10 +38,6 @@ in
         example = "/scratch/results/nix-bitcoin-monitor";
         description = mdDoc "Directory for results.";
       };
-
-      storeDebugLog = mkEnableOption "storing the debug log" // {
-        default = true;
-      };
     };
   };
 
@@ -66,7 +62,6 @@ in
         ExecStart = ''${nix-bitcoin-monitor}/bin/bitcoin-monitor \
           --log-level ${cfg.logLevel} \
           --result-path ${cfg.resultPath} \
-          ${if cfg.storeDebugLog then "--store-debug-log" else "--no-store-debug-log"}
         '';
       };
     };

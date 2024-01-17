@@ -5,7 +5,7 @@ import logging as log
 from dataclasses import dataclass
 from functools import cached_property
 
-from .bitcoin import BitcoinRPC
+from .bitcoin.rpc import GetConnectionCount, GetPeerInfo
 from .config import Config
 
 
@@ -26,9 +26,10 @@ class Master:
         while True:
             self.log.info("thread started")
 
-            bitcoin_rpc_api_thread = BitcoinRPC(self.conf.rpc_conf)
+            get_connection_count = GetConnectionCount(self.conf.rpc_conf)
+            get_peer_info = GetPeerInfo(self.conf.rpc_conf)
 
-            await asyncio.gather(bitcoin_rpc_api_thread.run())
+            await asyncio.gather(get_connection_count.run(), get_peer_info.run())
             self.log.info("sleeping for five")
             await asyncio.sleep(5)
             self.log.info("waking up")

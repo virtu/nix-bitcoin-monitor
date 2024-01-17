@@ -14,7 +14,7 @@ def init_logger(log_level: str):
     """Initilize the logger. Use UTC-based timestamps and log to file if requested."""
 
     log.basicConfig(
-        format="%(asctime)s | %(name)-14s | %(levelname)-8s | %(message)s",
+        format="%(asctime)s | %(levelname)-8s | %(name)s: %(message)s",
         datefmt="%Y-%m-%dT%H:%M:%SZ",
         level=log_level,
     )
