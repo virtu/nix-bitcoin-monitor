@@ -36,6 +36,6 @@ class GetPeerInfo(BitcoinRPCBase):
         results = []
         for peer in data:
             result = {"timestamp": timestamp}
-            result.update({key: peer[key] for key in self.CSV_FIELDS})
+            result.update({key: peer[key] for key in self.CSV_FIELDS if key in peer})
             results.append(result)
         return results

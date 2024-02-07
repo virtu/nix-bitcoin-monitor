@@ -26,8 +26,9 @@ class Master:
         while True:
             self.log.info("thread started")
 
-            get_connection_count = GetConnectionCount(self.conf.rpc_conf)
-            get_peer_info = GetPeerInfo(self.conf.rpc_conf)
+            args = (self.conf.rpc_conf, self.conf.results_path)
+            get_connection_count = GetConnectionCount(*args)
+            get_peer_info = GetPeerInfo(*args)
 
             await asyncio.gather(get_connection_count.run(), get_peer_info.run())
             self.log.info("sleeping for five")
