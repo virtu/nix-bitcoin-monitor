@@ -20,12 +20,34 @@ class RPCConfig:
     @classmethod
     def parse(cls, args):
         """Create class instance from command-line arguments."""
+
         return cls(
             host=args.rpc_host,
             port=args.rpc_port,
             user=args.rpc_user,
-            password=args.rpc_password,
+            password=cls.get_password(args.rpc_password, args.rpc_password_file),
         )
+
+    @staticmethod
+    def get_password(password: str, password_file: Path):
+        """Get password directly from command-line argument or from file."""
+
+        if (password and password_file) or not (password or password_file):
+            raise ValueError(
+                "Exactly one of --rpc-password and --rpc-password-file must be used"
+            )
+
+        if password:
+            return password
+
+        if not password_file.exists():
+            raise FileNotFoundError(f"Password file {password_file} does not exist")
+
+        print(f"Using RPC password from {password_file}.")
+        with open(password_file, "r", encoding="utf-8") as f:
+            password = f.readline().strip("\n")
+
+        return password
 
     def __repr__(self):
         """Return redacted string."""
@@ -44,6 +66,10 @@ class Config:
     @classmethod
     def parse(cls, args):
         """Create class instance from command-line arguments."""
+
+        # ensure result_path exists and is not a file
+        args.result_path.mkdir(parents=True, exist_ok=True)
+
         return cls(
             version=__version__,
             log_level=args.log_level.upper(),
@@ -92,15 +118,21 @@ def parse_args():
     parser.add_argument(
         "--rpc-user",
         type=str,
-        default="bitcoin",
+        required=True,
         help="Bitcoin Core RPC user",
     )
 
     parser.add_argument(
         "--rpc-password",
         type=str,
-        default="secretpassword",
         help="Bitcoin Core RPC password",
+    )
+
+    parser.add_argument(
+        "--rpc-password-file",
+        type=Path,
+        default=None,
+        help="File containing Bitcoin Core RPC password",
     )
 
     args = parser.parse_args()

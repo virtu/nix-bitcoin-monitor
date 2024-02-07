@@ -19,8 +19,9 @@ class BitcoinRPCBase:
     """Base class containing shared functionality related to Bitcoin Core's RPC API."""
 
     conf: RPCConfig
+    results_path: Path
     CALL_NAME: ClassVar[str] = "dummy"
-    FREQUENCY: ClassVar[int] = 60
+    FREQUENCY: ClassVar[int] = 60 * 60  # default polling frequency [s]
     CSV_FIELDS: ClassVar[list[str]] = ["dummy"]
 
     @cached_property
@@ -34,9 +35,12 @@ class BitcoinRPCBase:
 
         while True:
             call_time = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-            call_result = await self.rpc_call()
-            data = self.format_results(call_time, call_result)
-            self.write_result(data)
+            try:
+                call_result = await self.rpc_call()
+                data = self.format_results(call_time, call_result)
+                self.write_result(data)
+            except ConnectionError as e:
+                self.log.error(e)
 
             self.log.info("Sleeping for %d seconds", self.FREQUENCY)
             await asyncio.sleep(self.FREQUENCY)
@@ -58,12 +62,9 @@ class BitcoinRPCBase:
                 if response.status == 200:
                     result = await response.json()
                 else:
-                    self.log.error(
-                        "RPC response: status=%s, details=%s",
-                        response.status,
-                        await response.text(),
+                    raise ConnectionError(
+                        f"unexpected RPC response: status={response.status}, reason={response.reason}"
                     )
-                    return "error"
 
         self.log.info("Reponse: %s bytes", response.headers["Content-Length"])
         return result["result"]
@@ -79,7 +80,7 @@ class BitcoinRPCBase:
         :param list data: a list of dicts containing data to be written
         """
 
-        file = Path(f"results-{self.CALL_NAME}.csv")
+        file = Path(f"{self.results_path}/{self.CALL_NAME}.csv")
         file_exists = file.exists()
         with open(file, "a", newline="", encoding="UTF-8") as f:
             csv_writer = csv.DictWriter(f, fieldnames=["timestamp"] + self.CSV_FIELDS)
