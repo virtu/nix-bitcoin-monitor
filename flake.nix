@@ -20,7 +20,7 @@
     {
       packages = {
         nix-bitcoin-monitor = mkPoetryApplication {
-          projectDir = self;
+          projectDir = ./.;
         };
 
         default = self.packages.${system}.nix-bitcoin-monitor;
