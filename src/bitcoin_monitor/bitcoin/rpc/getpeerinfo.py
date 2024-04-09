@@ -26,7 +26,7 @@ class GetPeerInfo(BitcoinRPCBase):
         "connection_type",
     ]
 
-    def format_results(self, timestamp, data):
+    def format_results(self, timestamp, data) -> list[dict]:
         """
         Format RPC call result.
 

@@ -4,6 +4,7 @@ import asyncio
 import csv
 import datetime
 import logging as log
+import time
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
@@ -12,6 +13,26 @@ from typing import ClassVar
 import aiohttp
 
 from ...config import RPCConfig
+
+
+def human_readable_size(size_bytes: int) -> str:
+    """Convert size in bytes to a human-readable string."""
+    if size_bytes < 1000:
+        return f"{size_bytes}B"
+    if (size_kbytes := size_bytes / 1000) < 1000:
+        return f"{size_kbytes:.1f}kB"
+    return f"{(size_kbytes/1000):.1f}MB"
+
+
+def human_readable_time(sec: float) -> str:
+    """Convert seconds to a human-readable string."""
+    if (msec := int(sec * 1000)) < 1000:
+        return f"{msec}ms"
+    if sec < 60:
+        return f"{sec:.1f}s"
+    if (min_ := sec / 60) < 60:
+        return f"{min_:.1f}m"
+    return f"{(min_/60):.1f}h"
 
 
 @dataclass
@@ -29,10 +50,24 @@ class BitcoinRPCBase:
         """Custom logger."""
         return log.getLogger(self.__class__.__name__)
 
+    async def reschedule(self):
+        """Reschedule the task by sleeping until the next multiple of FREQUENCY."""
+        now = time.time() + 1  # avoid race condition where now % FREQUENCY == 0
+        last_scheduled = now - now % self.FREQUENCY
+        next_scheduled = last_scheduled + self.FREQUENCY
+        wake_time = datetime.datetime.utcfromtimestamp(next_scheduled)
+        sleep_time = next_scheduled - now
+        self.log.info(
+            "Scheduling next run at %s (sleeping for %s)",
+            wake_time.isoformat() + "Z",
+            human_readable_time(sleep_time),
+        )
+        await asyncio.sleep(sleep_time)
+        self.log.info("Waking up")
+
     async def run(self):
         """Code to fetch data from Bitcoin API."""
         self.log.info("BitcoinRPCBase:run() for call %s started", self.CALL_NAME)
-
         while True:
             call_time = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
             try:
@@ -41,10 +76,7 @@ class BitcoinRPCBase:
                 self.write_result(data)
             except ConnectionError as e:
                 self.log.error(e)
-
-            self.log.info("Sleeping for %d seconds", self.FREQUENCY)
-            await asyncio.sleep(self.FREQUENCY)
-            self.log.info("Waking up")
+            await self.reschedule()
 
     async def rpc_call(self):
         """Open RPC connection, perform RPC calls, and write results."""
@@ -57,6 +89,7 @@ class BitcoinRPCBase:
             "id": 1,
         }
         self.log.info("Initiating %s RPC call", self.CALL_NAME)
+        time_start = time.time()
         async with aiohttp.ClientSession() as session:
             async with session.post(rpc_url, json=rpc_data) as response:
                 if response.status == 200:
@@ -65,11 +98,15 @@ class BitcoinRPCBase:
                     raise ConnectionError(
                         f"unexpected RPC response: status={response.status}, reason={response.reason}"
                     )
-
-        self.log.info("Reponse: %s bytes", response.headers["Content-Length"])
+        call_duration = time.time() - time_start
+        self.log.info(
+            "API reponse: size=%s, call_duration=%s",
+            human_readable_size(int(response.headers["Content-Length"])),
+            human_readable_time(call_duration),
+        )
         return result["result"]
 
-    def format_results(self, timestamp, data):
+    def format_results(self, timestamp, data) -> list[dict]:
         """Format results obtained via API call. Since this is call-specific,
         the appropriate code resides in subclasses."""
         raise NotImplementedError("Needs to be overwritten in subclass!")
