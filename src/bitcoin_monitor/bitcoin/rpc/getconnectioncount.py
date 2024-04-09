@@ -13,7 +13,7 @@ class GetConnectionCount(BitcoinRPCBase):
     CALL_NAME: ClassVar[str] = "getconnectioncount"
     CSV_FIELDS: ClassVar[list[str]] = ["connectioncount"]
 
-    def format_results(self, timestamp, data):
+    def format_results(self, timestamp, data) -> list[dict]:
         """
         Format RPC call result.
 
