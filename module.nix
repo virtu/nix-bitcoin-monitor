@@ -90,6 +90,7 @@ in
           ${optionalString (cfg.bitcoinRpcPass != null) "--rpc-password=${cfg.bitcoinRpcPass}" } \
           ${optionalString (cfg.bitcoinRpcPassFile != null) "--rpc-password-file=${cfg.bitcoinRpcPassFile}" } \
         '';
+        Restart = "on-failure";
       };
     };
 
