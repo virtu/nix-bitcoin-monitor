@@ -5,7 +5,7 @@ import logging as log
 from dataclasses import dataclass
 from functools import cached_property
 
-from .bitcoin.rpc import GetConnectionCount, GetPeerInfo, GetTxoutSetInfo
+from .bitcoin import rpc
 from .config import Config
 
 
@@ -27,12 +27,16 @@ class Master:
             self.log.info("thread started")
 
             args = (self.conf.rpc_conf, self.conf.results_path)
-            get_connection_count = GetConnectionCount(*args)
-            get_peer_info = GetPeerInfo(*args)
-            get_txoutset_info = GetTxoutSetInfo(*args)
+            get_connection_count = rpc.GetConnectionCount(*args)
+            get_peer_info = rpc.GetPeerInfo(*args)
+            get_txoutset_info = rpc.GetTxoutSetInfo(*args)
+            get_node_addresses = rpc.GetNodeAddresses(*args)
 
             await asyncio.gather(
-                get_connection_count.run(), get_peer_info.run(), get_txoutset_info.run()
+                get_connection_count.run(),
+                get_peer_info.run(),
+                get_txoutset_info.run(),
+                get_node_addresses.run(),
             )
             self.log.info("sleeping for five")
             await asyncio.sleep(5)
