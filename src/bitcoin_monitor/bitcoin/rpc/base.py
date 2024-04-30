@@ -42,6 +42,7 @@ class BitcoinRPCBase:
     conf: RPCConfig
     results_path: Path
     CALL_NAME: ClassVar[str] = "dummy"
+    CALL_ARGUMENTS: ClassVar[list] = []
     FREQUENCY: ClassVar[int] = 60 * 60  # default polling frequency [s]
     CSV_FIELDS: ClassVar[list[str]] = ["dummy"]
 
@@ -67,7 +68,14 @@ class BitcoinRPCBase:
 
     async def run(self):
         """Code to fetch data from Bitcoin API."""
-        self.log.info("BitcoinRPCBase:run() for call %s started", self.CALL_NAME)
+        self.log.info(
+            "BitcoinRPCBase:run() started for call=%s, arguments=%s",
+            self.CALL_NAME,
+            ",".join(str(arg) for arg in self.CALL_ARGUMENTS)
+            if self.CALL_ARGUMENTS
+            else "None",
+        )
+
         while True:
             call_time = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
             try:
@@ -84,7 +92,7 @@ class BitcoinRPCBase:
         rpc_url = f"http://{self.conf.user}:{self.conf.password}@{self.conf.host}:{self.conf.port}/"
         rpc_data = {
             "method": self.CALL_NAME,
-            "params": [],
+            "params": self.CALL_ARGUMENTS,
             "jsonrpc": "2.0",
             "id": 1,
         }
@@ -100,7 +108,7 @@ class BitcoinRPCBase:
                     )
         call_duration = time.time() - time_start
         self.log.info(
-            "API reponse: size=%s, call_duration=%s",
+            "API response: size=%s, call_duration=%s",
             human_readable_size(int(response.headers["Content-Length"])),
             human_readable_time(call_duration),
         )
