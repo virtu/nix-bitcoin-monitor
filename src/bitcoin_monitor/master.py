@@ -31,12 +31,14 @@ class Master:
             get_peer_info = rpc.GetPeerInfo(*args)
             get_txoutset_info = rpc.GetTxoutSetInfo(*args)
             get_node_addresses = rpc.GetNodeAddresses(*args)
+            get_raw_addrman = rpc.GetRawAddrman(*args)
 
             await asyncio.gather(
                 get_connection_count.run(),
                 get_peer_info.run(),
                 get_txoutset_info.run(),
                 get_node_addresses.run(),
+                get_raw_addrman.run(),
             )
             self.log.info("sleeping for five")
             await asyncio.sleep(5)
