@@ -79,8 +79,10 @@ in
     systemd.services.nix-bitcoin-monitor = {
       description = "Monitoring infrastructure for Bitcoin Core";
       wantedBy = [ "multi-user.target" ];
-      after = [ "network-online.target" ];
+      requires = [ "bitcoind.service" ];
+      after = [ "network-online.target" "bitcoind.service" ];
       serviceConfig = {
+        ExecStartPre = ''${pkgs.coreutils}/bin/sleep 60''; # wait for bitcoind to be ready to serve API calls
         ExecStart = ''${nix-bitcoin-monitor}/bin/bitcoin-monitor \
           --log-level=${cfg.logLevel} \
           --result-path=${cfg.resultPath} \
