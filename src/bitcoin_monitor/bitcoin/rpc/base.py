@@ -81,6 +81,9 @@ class BitcoinRPCBase:
             try:
                 call_result = await self.rpc_call()
                 data = self.format_results(call_time, call_result)
+                if not data:
+                    self.log.warning("no data returned by format_results")
+                    break
                 self.write_result(data)
             except ConnectionError as e:
                 self.log.error(e)
