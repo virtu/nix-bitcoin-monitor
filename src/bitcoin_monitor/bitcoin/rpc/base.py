@@ -108,7 +108,9 @@ class BitcoinRPCBase:
                     )
         call_duration = time.time() - time_start
         self.log.info(
-            "API response: size=%s, call_duration=%s",
+            "API response: status=%s, reason=%s, size=%s, call_duration=%s",
+            response.status,
+            response.reason,
             human_readable_size(int(response.headers["Content-Length"])),
             human_readable_time(call_duration),
         )
