@@ -15,7 +15,7 @@
   } // flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = nixpkgs.legacyPackages.${system};
-      inherit (poetry2nix.lib.mkPoetry2Nix { inherit pkgs; }) mkPoetryApplication defaultPoetryOverrides;
+      inherit (poetry2nix.lib.mkPoetry2Nix { inherit pkgs; }) mkPoetryApplication;
     in
     {
       packages = {
@@ -27,7 +27,8 @@
       };
 
       devShells.default = pkgs.mkShell {
-        packages = [ pkgs.poetry ];
+        inputsFrom = [ self.packages.${system}.default ];
+        packages = with pkgs; [ poetry ];
       };
     });
 }
