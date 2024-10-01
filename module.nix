@@ -80,6 +80,7 @@ in
       description = "Monitoring infrastructure for Bitcoin Core";
       wantedBy = [ "multi-user.target" ];
       requires = [ "bitcoind.service" ];
+      wants = [ "network-online.target" ];
       after = [ "network-online.target" "bitcoind.service" ];
       serviceConfig = {
         ExecStartPre = ''${pkgs.coreutils}/bin/sleep 60''; # wait for bitcoind to be ready to serve API calls
