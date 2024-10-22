@@ -5,7 +5,7 @@ import logging as log
 from dataclasses import dataclass
 from functools import cached_property
 
-from .bitcoin import rpc
+from .bitcoin import rpc, systemd
 from .config import Config
 
 
@@ -33,12 +33,16 @@ class Master:
             get_node_addresses = rpc.GetNodeAddresses(*args)
             get_raw_addrman = rpc.GetRawAddrman(*args)
 
+            args = (self.conf.results_path,)
+            ip_accounting = systemd.IPAccounting(*args)
+
             await asyncio.gather(
                 get_connection_count.run(),
                 get_peer_info.run(),
                 get_txoutset_info.run(),
                 get_node_addresses.run(),
                 get_raw_addrman.run(),
+                ip_accounting.run(),
             )
             self.log.info("sleeping for five")
             await asyncio.sleep(5)
