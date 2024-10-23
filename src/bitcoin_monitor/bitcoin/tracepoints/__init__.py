@@ -1,3 +1,3 @@
-from .ip_accounting import IPAccounting
+from .net import Net
 
-__all__ = ["IPAccounting"]
+__all__ = ["Net"]

@@ -28,9 +28,10 @@
             # tracepoint support
             bcc
             libbpf
+            linuxHeaders
           ];
           wrapPythonScripts = ''
-            wrapPythonPrograms "$out/bin" --prefix PYTHONPATH : "${bccEgg}"
+            wrapPythonPrograms "$out/bin" --prefix PYTHONPATH : "${bccEgg}" --prefix CFLAGS : "${pkgs.linuxHeaders}/include
           '';
         };
 
@@ -43,6 +44,9 @@
           packages = with pkgs; [ poetry ];
           # add bcc to existing PYTHONPATH
           PYTHONPATH = "${bccEgg}${builtins.getEnv "PYTHONPATH"}";
+          shellHook = ''
+            echo "Kernel Headers in ${pkgs.linuxHeaders}"
+          '';
         };
     });
 }
