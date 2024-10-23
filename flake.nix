@@ -15,12 +15,16 @@
   } // flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = nixpkgs.legacyPackages.${system};
-      inherit (poetry2nix.lib.mkPoetry2Nix { inherit pkgs; }) mkPoetryApplication;
+      inherit (poetry2nix.lib.mkPoetry2Nix { inherit pkgs; }) mkPoetryApplication defaultPoetryOverrides;
     in
     {
       packages = {
         nix-bitcoin-monitor = mkPoetryApplication {
           projectDir = ./.;
+          overrides = defaultPoetryOverrides.extend
+            (final: prev: {
+              bcc = prev.bcc.overridePythonAttrs (old: { buildInputs = (old.buildInputs or [ ]) ++ [ prev.setuptools prev.pytest-runner ]; });
+            });
         };
 
         default = self.packages.${system}.nix-bitcoin-monitor;
