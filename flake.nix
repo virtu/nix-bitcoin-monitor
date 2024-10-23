@@ -15,24 +15,34 @@
   } // flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = nixpkgs.legacyPackages.${system};
-      inherit (poetry2nix.lib.mkPoetry2Nix { inherit pkgs; }) mkPoetryApplication defaultPoetryOverrides;
+      pythonVersionParts = (builtins.split "[.]" pkgs.python3.version);
+      pythonVersion = "${builtins.elemAt pythonVersionParts 0}.${builtins.elemAt pythonVersionParts 2 }";
+      bccEgg = "${pkgs.bcc}/lib/python${pythonVersion}/site-packages/bcc-${pkgs.bcc.version}-py${pythonVersion}.egg";
+      inherit (poetry2nix.lib.mkPoetry2Nix { inherit pkgs; }) mkPoetryApplication;
     in
     {
       packages = {
         nix-bitcoin-monitor = mkPoetryApplication {
           projectDir = ./.;
-          overrides = defaultPoetryOverrides.extend
-            (final: prev: {
-              bcc = prev.bcc.overridePythonAttrs (old: { buildInputs = (old.buildInputs or [ ]) ++ [ prev.setuptools prev.pytest-runner ]; });
-            });
+          propagatedBuildInputs = with pkgs; [
+            # tracepoint support
+            bcc
+            libbpf
+          ];
+          wrapPythonScripts = ''
+            wrapPythonPrograms "$out/bin" --prefix PYTHONPATH : "${bccEgg}"
+          '';
         };
 
         default = self.packages.${system}.nix-bitcoin-monitor;
       };
 
-      devShells.default = pkgs.mkShell {
-        inputsFrom = [ self.packages.${system}.default ];
-        packages = with pkgs; [ poetry ];
-      };
+      devShells.default = pkgs.mkShell
+        {
+          inputsFrom = [ self.packages.${system}.default ];
+          packages = with pkgs; [ poetry ];
+          # add bcc to existing PYTHONPATH
+          PYTHONPATH = "${bccEgg}${builtins.getEnv "PYTHONPATH"}";
+        };
     });
 }
