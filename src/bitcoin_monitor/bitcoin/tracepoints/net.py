@@ -207,8 +207,9 @@ class Net:
         self.log.info("tracepoints.net:run() adding handlers...")
 
         # BCC: add handlers to the inbound and outbound perf buffers
-        bpf["inbound_messages"].open_perf_buffer(handle_inbound)
-        bpf["outbound_messages"].open_perf_buffer(handle_outbound)
+        # be generous with the page_cnt (default=8) to increase the buffer size
+        bpf["inbound_messages"].open_perf_buffer(handle_inbound, page_cnt=128)
+        bpf["outbound_messages"].open_perf_buffer(handle_outbound, page_cnt=128)
 
         tz = datetime.timezone.utc
         while True:
