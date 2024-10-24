@@ -150,7 +150,7 @@ class Net:
         )
         await asyncio.sleep(sleep_time)
         # TODO: replace with self.log (look at ../rpc/base.py)
-        log.info("Waking up")
+        log.info("tracepoints.net:run(): Waking up")
 
     async def run(self):
         """Code to fetch data from systemd."""
@@ -213,12 +213,12 @@ class Net:
             call_time = datetime.datetime.now(tz).strftime("%Y-%m-%dT%H:%M:%SZ")
             try:
                 call_result = await self.tracepoint_poll(bpf)
-                # data = self.format_results(call_time, call_result)
-                # if not data:
-                # TODO: replace with self.log (look at ../rpc/base.py)
-                # log.warning("no data returned by format_results")
-                # break
-                # self.write_result(data)
+                data = self.format_results(call_time, call_result)
+                if not data:
+                    # TODO: replace with self.log (look at ../rpc/base.py)
+                    log.warning("no data returned by format_results")
+                    break
+                self.write_result(data)
             except ConnectionError as e:
                 # TODO: replace with self.log (look at ../rpc/base.py)
                 log.error(e)
