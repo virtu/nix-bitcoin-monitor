@@ -214,11 +214,13 @@ class Net:
             try:
                 call_result = await self.tracepoint_poll(bpf)
                 data = self.format_results(call_time, call_result)
-                if not data:
-                    # TODO: replace with self.log (look at ../rpc/base.py)
+                # if not data:
+                #     # TODO: replace with self.log (look at ../rpc/base.py)
+                #     break
+                if data:
+                    self.write_result(data)
+                else:
                     log.warning("no data returned by format_results")
-                    break
-                self.write_result(data)
             except ConnectionError as e:
                 # TODO: replace with self.log (look at ../rpc/base.py)
                 log.error(e)
