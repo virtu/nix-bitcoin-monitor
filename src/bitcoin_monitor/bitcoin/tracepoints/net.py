@@ -115,6 +115,7 @@ class Net:
     CALL_NAME: ClassVar[str] = "net"
     # TODO: not used here, probably should be. need to figure out field names
     CSV_FIELDS: ClassVar[list[str]] = [
+        "peer_id",
         "peer_conn_type",
         "peer_addr",
         "flow",
