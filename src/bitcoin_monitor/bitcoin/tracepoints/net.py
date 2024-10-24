@@ -6,57 +6,24 @@ import datetime
 import logging as log
 import subprocess
 import time
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import ClassVar
 
 import psutil
-from bcc import BPF, USDT
+from bcc import BPF, USDT, re
 
 
+@dataclass
 class Message:
     """A P2P network message."""
 
-    msg_type = ""
-    size = 0
-    data = bytes()
-    inbound = False
-
-    def __init__(self, msg_type, size, inbound):
-        self.msg_type = msg_type
-        self.size = size
-        self.inbound = inbound
-
-
-class Peer:
-    """A P2P network peer."""
-
-    id = 0
-    address = ""
-    connection_type = ""
-    last_messages = list()
-
-    total_inbound_msgs = 0
-    total_inbound_bytes = 0
-    total_outbound_msgs = 0
-    total_outbound_bytes = 0
-
-    def __init__(self, id, address, connection_type):
-        self.id = id
-        self.address = address
-        self.connection_type = connection_type
-        self.last_messages = list()
-
-    def add_message(self, message):
-        self.last_messages.append(message)
-        if len(self.last_messages) > 25:
-            self.last_messages.pop(0)
-        if message.inbound:
-            self.total_inbound_bytes += message.size
-            self.total_inbound_msgs += 1
-        else:
-            self.total_outbound_bytes += message.size
-            self.total_outbound_msgs += 1
+    peer_id: int
+    peer_conn_type: str
+    peer_addr: str
+    flow: str
+    msg_type: str
+    size: int
 
 
 PROGRAM = """
@@ -143,13 +110,17 @@ class Net:
 
     results_path: Path
     peers = {}
+    messages = []
     FREQUENCY: ClassVar[int] = 5  # 5 seconds
     CALL_NAME: ClassVar[str] = "net"
+    # TODO: not used here, probably should be. need to figure out field names
     CSV_FIELDS: ClassVar[list[str]] = [
-        "direction",  # in, out
-        "connection_type",
+        "peer_id",
+        "peer_conn_type",
+        "peer_addr",
+        "flow",
         "msg_type",
-        "msg_size",
+        "size",
     ]
 
     async def get_pid(self, binary_name="bitcoind") -> int:
@@ -181,7 +152,7 @@ class Net:
         )
         await asyncio.sleep(sleep_time)
         # TODO: replace with self.log (look at ../rpc/base.py)
-        log.info("Waking up")
+        log.info("tracepoints.net:run(): Waking up")
 
     async def run(self):
         """Code to fetch data from systemd."""
@@ -205,46 +176,32 @@ class Net:
         log.info("tracepoints.net:run() compiling program...")
         bpf = BPF(text=PROGRAM, usdt_contexts=[bitcoind_with_usdts])
 
-        def handle_message(_, direction, data, size):
-            pass
+        # def handle_message(direction, data, size):
+        #     event = bpf["
 
         # BCC: perf buffer handle function for inbound_messages
+        #
+        def handle_message(event, flow: str) -> None:
+            """Handle in- and outbound messages."""
+            message = Message(
+                peer_id=event.peer_id,
+                peer_conn_type=event.peer_conn_type.decode("utf-8"),
+                peer_addr=event.peer_addr.decode("utf-8"),
+                flow=flow,
+                msg_type=event.msg_type.decode("utf-8"),
+                size=event.msg_size,
+            )
+            self.messages.append(message)
+
         def handle_inbound(_, data, size):
-            """Inbound message handler.
-            # handle_message("in", data, size)
-
-            Called each time a message is submitted to the inbound_messages BPF table.
-            """
+            """Inbound message handler."""
             event = bpf["inbound_messages"].event(data)
-            if event.peer_id not in self.peers:
-                peer = Peer(
-                    event.peer_id,
-                    event.peer_addr.decode("utf-8"),
-                    event.peer_conn_type.decode("utf-8"),
-                )
-                self.peers[peer.id] = peer
-            self.peers[event.peer_id].add_message(
-                Message(event.msg_type.decode("utf-8"), event.msg_size, True)
-            )
+            handle_message(event, flow="in")
 
-        # BCC: perf buffer handle function for outbound_messages
         def handle_outbound(_, data, size):
-            """Outbound message handler.
-
-            Called each time a message is submitted to the outbound_messages BPF table.
-            """
-            # handle_message("out", data, size)
+            """Outbound message handler."""
             event = bpf["outbound_messages"].event(data)
-            if event.peer_id not in self.peers:
-                peer = Peer(
-                    event.peer_id,
-                    event.peer_addr.decode("utf-8"),
-                    event.peer_conn_type.decode("utf-8"),
-                )
-                self.peers[peer.id] = peer
-            self.peers[event.peer_id].add_message(
-                Message(event.msg_type.decode("utf-8"), event.msg_size, False)
-            )
+            handle_message(event, flow="out")
 
         # TODO: replace with self.log (look at ../rpc/base.py)
         log.info("tracepoints.net:run() adding handlers...")
@@ -253,43 +210,47 @@ class Net:
         bpf["inbound_messages"].open_perf_buffer(handle_inbound)
         bpf["outbound_messages"].open_perf_buffer(handle_outbound)
 
+        tz = datetime.timezone.utc
+        while True:
+            call_time = datetime.datetime.now(tz).strftime("%Y-%m-%dT%H:%M:%SZ")
+            try:
+                call_result = await self.tracepoint_poll(bpf)
+                data = self.format_results(call_time, call_result)
+                # if not data:
+                #     # TODO: replace with self.log (look at ../rpc/base.py)
+                #     break
+                if data:
+                    self.write_result(data)
+                else:
+                    log.warning("no data returned by format_results")
+            except ConnectionError as e:
+                # TODO: replace with self.log (look at ../rpc/base.py)
+                log.error(e)
+            await self.reschedule()
+
+    async def tracepoint_poll(self, bpf) -> list[dict]:
+        """Tracepoint call."""
         log.info("tracepoints.net:run() polling buffers...")
         bpf.perf_buffer_poll(timeout=50)
 
         log.info("tracepoints.net:run() printing results...")
-        print(self.peers)
-
-        # tz = datetime.timezone.utc
-        # while True:
-        #     call_time = datetime.datetime.now(tz).strftime("%Y-%m-%dT%H:%M:%SZ")
-        #     try:
-        #         call_result = await self.tracepoint_call()
-        #         data = self.format_results(call_time, call_result)
-        #         if not data:
-        #             # TODO: replace with self.log (look at ../rpc/base.py)
-        #             log.warning("no data returned by format_results")
-        #             break
-        #         self.write_result(data)
-        #     except ConnectionError as e:
-        #         # TODO: replace with self.log (look at ../rpc/base.py)
-        #         log.error(e)
-        #     await self.reschedule()
-
-    # async def tracepoint_call(self) -> None:
-    #     bpf.perf_buffer_poll(timeout=50)
-    #
-    #     print(self.peers)
-    #
-    # return data
+        num_msgs = len(self.messages)
+        log.info("tracepoints.net:run() received %d new messages...", num_msgs)
+        results = []
+        for i, msg in enumerate(self.messages):
+            log.info("tracepoints.net:run() message %d: %s", i, msg)
+            results.append(asdict(msg))
+        self.messages.clear()
+        return results
 
     def format_results(self, timestamp, data) -> list[dict]:
-        """
-        Format call results: just add timestamp.
-        """
-        return [
-            {"timestamp": timestamp}
-            | {k: v for k, v in data.items() if k in self.CSV_FIELDS}
-        ]
+        """Format list of results: add timestamp to each."""
+        results = []
+        for msg in data:
+            result = {"timestamp": timestamp}
+            result.update({key: msg[key] for key in self.CSV_FIELDS if key in msg})
+            results.append(result)
+        return results
 
     def write_result(self, data):
         """Write CSV call results to CSV file.
