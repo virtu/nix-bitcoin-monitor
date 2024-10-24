@@ -115,10 +115,11 @@ class Net:
     CALL_NAME: ClassVar[str] = "net"
     # TODO: not used here, probably should be. need to figure out field names
     CSV_FIELDS: ClassVar[list[str]] = [
-        "direction",  # in, out
-        "connection_type",
+        "peer_conn_type",
+        "peer_addr",
+        "flow",
         "msg_type",
-        "msg_size",
+        "size",
     ]
 
     async def get_pid(self, binary_name="bitcoind") -> int:
