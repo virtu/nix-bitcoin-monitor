@@ -14,49 +14,16 @@ import psutil
 from bcc import BPF, USDT
 
 
+@dataclass
 class Message:
     """A P2P network message."""
 
-    msg_type = ""
-    size = 0
-    data = bytes()
-    inbound = False
-
-    def __init__(self, msg_type, size, inbound):
-        self.msg_type = msg_type
-        self.size = size
-        self.inbound = inbound
-
-
-class Peer:
-    """A P2P network peer."""
-
-    id = 0
-    address = ""
-    connection_type = ""
-    last_messages = list()
-
-    total_inbound_msgs = 0
-    total_inbound_bytes = 0
-    total_outbound_msgs = 0
-    total_outbound_bytes = 0
-
-    def __init__(self, id, address, connection_type):
-        self.id = id
-        self.address = address
-        self.connection_type = connection_type
-        self.last_messages = list()
-
-    def add_message(self, message):
-        self.last_messages.append(message)
-        if len(self.last_messages) > 25:
-            self.last_messages.pop(0)
-        if message.inbound:
-            self.total_inbound_bytes += message.size
-            self.total_inbound_msgs += 1
-        else:
-            self.total_outbound_bytes += message.size
-            self.total_outbound_msgs += 1
+    peer_id: int
+    peer_conn_type: str
+    peer_addr: str
+    flow: str
+    msg_type: str
+    size: int
 
 
 PROGRAM = """
@@ -143,6 +110,7 @@ class Net:
 
     results_path: Path
     peers = {}
+    messages = []
     FREQUENCY: ClassVar[int] = 5  # 5 seconds
     CALL_NAME: ClassVar[str] = "net"
     CSV_FIELDS: ClassVar[list[str]] = [
@@ -205,46 +173,40 @@ class Net:
         log.info("tracepoints.net:run() compiling program...")
         bpf = BPF(text=PROGRAM, usdt_contexts=[bitcoind_with_usdts])
 
-        def handle_message(_, direction, data, size):
-            pass
+        # def handle_message(direction, data, size):
+        #     event = bpf["
 
         # BCC: perf buffer handle function for inbound_messages
         def handle_inbound(_, data, size):
             """Inbound message handler.
-            # handle_message("in", data, size)
 
             Called each time a message is submitted to the inbound_messages BPF table.
             """
+            # handle_message("in", data, size)
             event = bpf["inbound_messages"].event(data)
-            if event.peer_id not in self.peers:
-                peer = Peer(
-                    event.peer_id,
-                    event.peer_addr.decode("utf-8"),
-                    event.peer_conn_type.decode("utf-8"),
-                )
-                self.peers[peer.id] = peer
-            self.peers[event.peer_id].add_message(
-                Message(event.msg_type.decode("utf-8"), event.msg_size, True)
+            message = Message(
+                peer_id=event.peer_id,
+                peer_conn_type=event.peer_conn_type.decode("utf-8"),
+                peer_addr=event.peer_addr.decode("utf-8"),
+                flow="in",
+                msg_type=event.msg_type.decode("utf-8"),
+                size=event.msg_size,
             )
+            self.messages.append(message)
 
         # BCC: perf buffer handle function for outbound_messages
         def handle_outbound(_, data, size):
-            """Outbound message handler.
-
-            Called each time a message is submitted to the outbound_messages BPF table.
-            """
-            # handle_message("out", data, size)
+            """Outbound message handler."""
             event = bpf["outbound_messages"].event(data)
-            if event.peer_id not in self.peers:
-                peer = Peer(
-                    event.peer_id,
-                    event.peer_addr.decode("utf-8"),
-                    event.peer_conn_type.decode("utf-8"),
-                )
-                self.peers[peer.id] = peer
-            self.peers[event.peer_id].add_message(
-                Message(event.msg_type.decode("utf-8"), event.msg_size, False)
+            message = Message(
+                peer_id=event.peer_id,
+                peer_conn_type=event.peer_conn_type.decode("utf-8"),
+                peer_addr=event.peer_addr.decode("utf-8"),
+                flow="out",
+                msg_type=event.msg_type.decode("utf-8"),
+                size=event.msg_size,
             )
+            self.messages.append(message)
 
         # TODO: replace with self.log (look at ../rpc/base.py)
         log.info("tracepoints.net:run() adding handlers...")
@@ -280,7 +242,11 @@ class Net:
         bpf.perf_buffer_poll(timeout=50)
 
         log.info("tracepoints.net:run() printing results...")
-        print(self.peers)
+        num_msgs = len(self.messages)
+        log.info("tracepoints.net:run() received %d new messages...", num_msgs)
+        for i, msg in enumerate(self.messages):
+            log.info("tracepoints.net:run() message %d: %s", i, msg)
+        self.messages.clear()
 
     # return data
 
