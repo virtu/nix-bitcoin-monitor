@@ -158,7 +158,7 @@ class Net:
         for process in psutil.process_iter(["name", "pid"]):
             if process.info["name"] == binary_name:
                 pids.append(process.info["pid"])
-        if len(pids) != 0:
+        if len(pids) != 1:
             raise RuntimeError(
                 f"get_pid: found {len(pids)} processes with name {binary_name}"
             )
