@@ -259,27 +259,29 @@ class Net:
         log.info("tracepoints.net:run() printing results...")
         print(self.peers)
 
-        # tz = datetime.timezone.utc
-        # while True:
-        #     call_time = datetime.datetime.now(tz).strftime("%Y-%m-%dT%H:%M:%SZ")
-        #     try:
-        #         call_result = await self.tracepoint_call()
-        #         data = self.format_results(call_time, call_result)
-        #         if not data:
-        #             # TODO: replace with self.log (look at ../rpc/base.py)
-        #             log.warning("no data returned by format_results")
-        #             break
-        #         self.write_result(data)
-        #     except ConnectionError as e:
-        #         # TODO: replace with self.log (look at ../rpc/base.py)
-        #         log.error(e)
-        #     await self.reschedule()
+        tz = datetime.timezone.utc
+        while True:
+            call_time = datetime.datetime.now(tz).strftime("%Y-%m-%dT%H:%M:%SZ")
+            try:
+                call_result = await self.tracepoint_call(bpf)
+                # data = self.format_results(call_time, call_result)
+                # if not data:
+                # TODO: replace with self.log (look at ../rpc/base.py)
+                # log.warning("no data returned by format_results")
+                # break
+                # self.write_result(data)
+            except ConnectionError as e:
+                # TODO: replace with self.log (look at ../rpc/base.py)
+                log.error(e)
+            await self.reschedule()
 
-    # async def tracepoint_call(self) -> None:
-    #     bpf.perf_buffer_poll(timeout=50)
-    #
-    #     print(self.peers)
-    #
+    async def tracepoint_call(self, bpf) -> None:
+        log.info("tracepoints.net:run() polling buffers...")
+        bpf.perf_buffer_poll(timeout=50)
+
+        log.info("tracepoints.net:run() printing results...")
+        print(self.peers)
+
     # return data
 
     def format_results(self, timestamp, data) -> list[dict]:
