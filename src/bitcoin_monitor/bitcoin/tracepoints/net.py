@@ -244,12 +244,12 @@ class Net:
         return results
 
     def format_results(self, timestamp, data) -> list[dict]:
-        """
-        Format list of results: add timestamp to each.
-        """
+        """Format list of results: add timestamp to each."""
         results = []
-        for datum in data:
-            results.append({"timestamp": timestamp} | datum)
+        for msg in data:
+            result = {"timestamp": timestamp}
+            result.update({key: msg[key] for key in self.CSV_FIELDS if key in msg})
+            results.append(result)
         return results
 
     def write_result(self, data):
