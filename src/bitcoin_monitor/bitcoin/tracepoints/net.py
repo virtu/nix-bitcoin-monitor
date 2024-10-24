@@ -4,14 +4,13 @@ import asyncio
 import csv
 import datetime
 import logging as log
-import subprocess
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import ClassVar
 
 import psutil
-from bcc import BPF, USDT, re
+from bcc import BPF, USDT
 
 
 @dataclass
@@ -216,9 +215,6 @@ class Net:
             try:
                 call_result = await self.tracepoint_poll(bpf)
                 data = self.format_results(call_time, call_result)
-                # if not data:
-                #     # TODO: replace with self.log (look at ../rpc/base.py)
-                #     break
                 if data:
                     self.write_result(data)
                 else:
@@ -230,16 +226,10 @@ class Net:
 
     async def tracepoint_poll(self, bpf) -> list[dict]:
         """Tracepoint call."""
-        log.info("tracepoints.net:run() polling buffers...")
         bpf.perf_buffer_poll(timeout=50)
-
-        log.info("tracepoints.net:run() printing results...")
         num_msgs = len(self.messages)
         log.info("tracepoints.net:run() received %d new messages...", num_msgs)
-        results = []
-        for i, msg in enumerate(self.messages):
-            log.info("tracepoints.net:run() message %d: %s", i, msg)
-            results.append(asdict(msg))
+        results = [asdict(msg) for msg in self.messages]
         self.messages.clear()
         return results
 
