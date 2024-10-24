@@ -195,10 +195,10 @@ class Net:
         bitcoind_with_usdts = USDT(pid=await self.get_pid())
         # attaching the trace functions defined in the BPF program to the tracepoints
         bitcoind_with_usdts.enable_probe(
-            probe="inbound_message", fn_name="trace_inbound_message"
+            probe="net:inbound_message", fn_name="trace_inbound_message"
         )
         bitcoind_with_usdts.enable_probe(
-            probe="outbound_message", fn_name="trace_outbound_message"
+            probe="net:outbound_message", fn_name="trace_outbound_message"
         )
 
         # TODO: replace with self.log (look at ../rpc/base.py)
