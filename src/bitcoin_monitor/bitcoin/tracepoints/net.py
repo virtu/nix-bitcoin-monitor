@@ -6,6 +6,7 @@ import datetime
 import logging as log
 import time
 from dataclasses import asdict, dataclass
+from functools import cached_property
 from pathlib import Path
 from typing import ClassVar
 
@@ -122,6 +123,13 @@ class Net:
         "size",
     ]
 
+    # TODO: This is taken from ../rpc/base.py; at some point, extract this
+    # functionality to avoid duplication
+    @cached_property
+    def log(self):
+        """Custom logger."""
+        return log.getLogger(self.__class__.__name__)
+
     async def get_pid(self, binary_name="bitcoind") -> int:
         """Get the PID of the bitcoind process."""
         pids = []
@@ -143,24 +151,19 @@ class Net:
         next_scheduled = last_scheduled + self.FREQUENCY
         wake_time = datetime.datetime.utcfromtimestamp(next_scheduled)
         sleep_time = next_scheduled - now
-        # TODO: replace with self.log (look at ../rpc/base.py)
-        log.info(
+        self.log.info(
             "Scheduling next run at %s (sleeping for %s)",
             wake_time.isoformat() + "Z",
             human_readable_time(sleep_time),
         )
         await asyncio.sleep(sleep_time)
-        # TODO: replace with self.log (look at ../rpc/base.py)
-        log.info("tracepoints.net:run(): Waking up")
+        self.log.info("tracepoints.net:run(): Waking up")
 
     async def run(self):
         """Code to fetch data from systemd."""
 
-        # TODO: replace with self.log (look at ../rpc/base.py)
-        log.info("tracepoints.net:run() started")
-
-        # TODO: replace with self.log (look at ../rpc/base.py)
-        log.info("tracepoints.net:run() enabling probes...")
+        self.log.info("tracepoints.net:run() started")
+        self.log.info("tracepoints.net:run() enabling probes...")
 
         bitcoind_with_usdts = USDT(pid=await self.get_pid())
         # attaching the trace functions defined in the BPF program to the tracepoints
@@ -171,8 +174,7 @@ class Net:
             probe="net:outbound_message", fn_name="trace_outbound_message"
         )
 
-        # TODO: replace with self.log (look at ../rpc/base.py)
-        log.info("tracepoints.net:run() compiling program...")
+        self.log.info("tracepoints.net:run() compiling program...")
         bpf = BPF(text=PROGRAM, usdt_contexts=[bitcoind_with_usdts])
 
         # def handle_message(direction, data, size):
@@ -202,8 +204,7 @@ class Net:
             event = bpf["outbound_messages"].event(data)
             handle_message(event, flow="out")
 
-        # TODO: replace with self.log (look at ../rpc/base.py)
-        log.info("tracepoints.net:run() adding handlers...")
+        self.log.info("tracepoints.net:run() adding handlers...")
 
         # BCC: add handlers to the inbound and outbound perf buffers
         bpf["inbound_messages"].open_perf_buffer(handle_inbound)
@@ -218,17 +219,16 @@ class Net:
                 if data:
                     self.write_result(data)
                 else:
-                    log.warning("no data returned by format_results")
+                    self.log.warning("no data returned by format_results")
             except ConnectionError as e:
-                # TODO: replace with self.log (look at ../rpc/base.py)
-                log.error(e)
+                self.log.error(e)
             await self.reschedule()
 
     async def tracepoint_poll(self, bpf) -> list[dict]:
         """Tracepoint call."""
         bpf.perf_buffer_poll(timeout=50)
         num_msgs = len(self.messages)
-        log.info("tracepoints.net:run() received %d new messages...", num_msgs)
+        self.log.info("tracepoints.net:run() received %d new messages...", num_msgs)
         results = [asdict(msg) for msg in self.messages]
         self.messages.clear()
         return results
