@@ -7,6 +7,7 @@ import logging as log
 import subprocess
 import time
 from dataclasses import dataclass
+from functools import cached_property
 from pathlib import Path
 from typing import ClassVar
 
@@ -54,6 +55,13 @@ class IPAccounting:
 
     # TODO: This is taken from ../rpc/base.py; at some point, extract this
     # functionality to avoid duplication
+    @cached_property
+    def log(self):
+        """Custom logger."""
+        return log.getLogger(self.__class__.__name__)
+
+    # TODO: This is taken from ../rpc/base.py; at some point, extract this
+    # functionality to avoid duplication
     async def reschedule(self):
         """Reschedule the task by sleeping until the next multiple of FREQUENCY."""
         now = time.time() + 1  # avoid race condition where now % FREQUENCY == 0
@@ -61,20 +69,17 @@ class IPAccounting:
         next_scheduled = last_scheduled + self.FREQUENCY
         wake_time = datetime.datetime.utcfromtimestamp(next_scheduled)
         sleep_time = next_scheduled - now
-        # TODO: replace with self.log (look at ../rpc/base.py)
-        log.info(
+        self.log.info(
             "Scheduling next run at %s (sleeping for %s)",
             wake_time.isoformat() + "Z",
             human_readable_time(sleep_time),
         )
         await asyncio.sleep(sleep_time)
-        # TODO: replace with self.log (look at ../rpc/base.py)
-        log.info("Waking up")
+        self.log.info("Waking up")
 
     async def run(self):
         """Code to fetch data from systemd."""
-        # TODO: replace with self.log (look at ../rpc/base.py)
-        log.info("systemd.IPAccounting:run() started")
+        self.log.info("systemd.IPAccounting:run() started")
 
         tz = datetime.timezone.utc
         while True:
@@ -83,13 +88,11 @@ class IPAccounting:
                 call_result = await self.systemd_call()
                 data = self.format_results(call_time, call_result)
                 if not data:
-                    # TODO: replace with self.log (look at ../rpc/base.py)
-                    log.warning("no data returned by format_results")
+                    self.log.warning("no data returned by format_results")
                     break
                 self.write_result(data)
             except ConnectionError as e:
-                # TODO: replace with self.log (look at ../rpc/base.py)
-                log.error(e)
+                self.log.error(e)
             await self.reschedule()
 
     async def systemd_call(self, service_name="bitcoind.service") -> dict:
