@@ -29,6 +29,9 @@
             bcc
             libbpf
             linuxHeaders
+            # to use /sys/kernel/kheaders.tar.xz
+            gnutar
+            xz
           ];
           wrapPythonScripts = ''
             wrapPythonPrograms "$out/bin" --prefix PYTHONPATH : "${bccEgg}" --prefix CFLAGS : "${pkgs.linuxHeaders}/include
