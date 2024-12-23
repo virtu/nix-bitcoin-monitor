@@ -83,6 +83,11 @@ in
       wants = [ "network-online.target" ];
       after = [ "network-online.target" "bitcoind.service" ];
       serviceConfig = {
+        # for now, run as root to avoid permission issues with eBPF/tracepoints
+        # at some point, figure out how to address this properly (e.g.,
+        # user-specific eBPF permissions or a SET_CAP binary accessible only by
+        # the user)
+        User = "root";
         ExecStartPre = ''${pkgs.coreutils}/bin/sleep 60''; # wait for bitcoind to be ready to serve API calls
         ExecStart = ''${nix-bitcoin-monitor}/bin/bitcoin-monitor \
           --log-level=${cfg.logLevel} \

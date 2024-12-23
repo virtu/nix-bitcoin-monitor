@@ -15,20 +15,41 @@
   } // flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = nixpkgs.legacyPackages.${system};
+      pythonVersionParts = (builtins.split "[.]" pkgs.python3.version);
+      pythonVersion = "${builtins.elemAt pythonVersionParts 0}.${builtins.elemAt pythonVersionParts 2 }";
+      bccEgg = "${pkgs.bcc}/lib/python${pythonVersion}/site-packages/bcc-${pkgs.bcc.version}-py${pythonVersion}.egg";
       inherit (poetry2nix.lib.mkPoetry2Nix { inherit pkgs; }) mkPoetryApplication;
     in
     {
       packages = {
         nix-bitcoin-monitor = mkPoetryApplication {
           projectDir = ./.;
+          propagatedBuildInputs = with pkgs; [
+            # tracepoint support
+            bcc
+            libbpf
+            linuxHeaders
+            # to use /sys/kernel/kheaders.tar.xz
+            gnutar
+            xz
+          ];
+          wrapPythonScripts = ''
+            wrapPythonPrograms "$out/bin" --prefix PYTHONPATH : "${bccEgg}" --prefix CFLAGS : "${pkgs.linuxHeaders}/include
+          '';
         };
 
         default = self.packages.${system}.nix-bitcoin-monitor;
       };
 
-      devShells.default = pkgs.mkShell {
-        inputsFrom = [ self.packages.${system}.default ];
-        packages = with pkgs; [ poetry ];
-      };
+      devShells.default = pkgs.mkShell
+        {
+          inputsFrom = [ self.packages.${system}.default ];
+          packages = with pkgs; [ poetry ];
+          # add bcc to existing PYTHONPATH
+          PYTHONPATH = "${bccEgg}${builtins.getEnv "PYTHONPATH"}";
+          shellHook = ''
+            echo "Kernel Headers in ${pkgs.linuxHeaders}"
+          '';
+        };
     });
 }
