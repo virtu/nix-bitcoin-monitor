@@ -86,7 +86,7 @@ in
         User = "nix-bitcoin-monitor";
         Group = "nix-bitcoin-monitor";
         # Grant systemd process the necessary capabilities to access tracepoints.
-        # (See https://github.com/virtu/nix-bitcoin-monitor/pull/5#pullrequestreview-2520287601 for details)
+        # See https://github.com/virtu/nix-bitcoin-monitor/pull/6 for details.
         AmbientCapabilities = "CAP_BPF CAP_PERFMON CAP_SYS_ADMIN CAP_SYS_RESOURCE CAP_SYS_PTRACE CAP_SYS_RAWIO";
         PrivateTmp = "yes";
         ExecStartPre = ''${pkgs.coreutils}/bin/sleep 60''; # wait for bitcoind to be ready to serve API calls
