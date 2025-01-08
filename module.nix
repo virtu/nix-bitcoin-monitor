@@ -83,11 +83,12 @@ in
       wants = [ "network-online.target" ];
       after = [ "network-online.target" "bitcoind.service" ];
       serviceConfig = {
-        # for now, run as root to avoid permission issues with eBPF/tracepoints
-        # at some point, figure out how to address this properly (e.g.,
-        # user-specific eBPF permissions or a SET_CAP binary accessible only by
-        # the user)
-        User = "root";
+        User = "nix-bitcoin-monitor";
+        Group = "nix-bitcoin-monitor";
+        # Grant systemd process the necessary capabilities to access tracepoints.
+        # See https://github.com/virtu/nix-bitcoin-monitor/pull/6 for details.
+        AmbientCapabilities = "CAP_BPF CAP_PERFMON CAP_SYS_ADMIN CAP_SYS_RESOURCE CAP_SYS_PTRACE CAP_SYS_RAWIO";
+        PrivateTmp = "yes";
         ExecStartPre = ''${pkgs.coreutils}/bin/sleep 60''; # wait for bitcoind to be ready to serve API calls
         ExecStart = ''${nix-bitcoin-monitor}/bin/bitcoin-monitor \
           --log-level=${cfg.logLevel} \

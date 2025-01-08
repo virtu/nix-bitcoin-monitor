@@ -175,13 +175,8 @@ class Net:
         )
 
         self.log.info("tracepoints.net:run() compiling program...")
-        bpf = BPF(text=PROGRAM, usdt_contexts=[bitcoind_with_usdts])
+        bpf = BPF(text=PROGRAM, usdt_contexts=[bitcoind_with_usdts], debug=4)
 
-        # def handle_message(direction, data, size):
-        #     event = bpf["
-
-        # BCC: perf buffer handle function for inbound_messages
-        #
         def handle_message(event, flow: str) -> None:
             """Handle in- and outbound messages."""
             message = Message(
