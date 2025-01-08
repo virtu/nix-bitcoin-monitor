@@ -88,6 +88,7 @@ in
         # user-specific eBPF permissions or a SET_CAP binary accessible only by
         # the user)
         User = "root";
+        PrivateTmp = "yes";
         ExecStartPre = ''${pkgs.coreutils}/bin/sleep 60''; # wait for bitcoind to be ready to serve API calls
         ExecStart = ''${nix-bitcoin-monitor}/bin/bitcoin-monitor \
           --log-level=${cfg.logLevel} \
