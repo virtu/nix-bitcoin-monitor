@@ -55,6 +55,32 @@ class RPCConfig:
 
 
 @dataclass
+class SourcesConfig:
+    """Configuration settings for data sources."""
+
+    rpc_getconnectioncount: bool
+    rpc_getpeerinfo: bool
+    rpc_gettxoutsetinfo: bool
+    rpc_getnodeaddresses: bool
+    rpc_getrawaddrman: bool
+    systemd_ipaccounting: bool
+    tracepoints_net: bool
+
+    @classmethod
+    def parse(cls, args):
+        """Create class instance from command-line arguments."""
+        return cls(
+            rpc_getconnectioncount=args.record_rpc_getconnectioncount,
+            rpc_getpeerinfo=args.record_rpc_getpeerinfo,
+            rpc_gettxoutsetinfo=args.record_rpc_gettxoutsetinfo,
+            rpc_getnodeaddresses=args.record_rpc_getnodeaddresses,
+            rpc_getrawaddrman=args.record_rpc_getrawaddrman,
+            systemd_ipaccounting=args.record_systemd_ip_accounting,
+            tracepoints_net=args.record_tracepoints_net,
+        )
+
+
+@dataclass
 class Config:
     """Configuration settings."""
 
@@ -62,6 +88,7 @@ class Config:
     log_level: str
     results_path: Path
     rpc_conf: RPCConfig
+    sources: SourcesConfig
 
     @classmethod
     def parse(cls, args):
@@ -75,6 +102,7 @@ class Config:
             log_level=args.log_level.upper(),
             results_path=Path(args.result_path),
             rpc_conf=RPCConfig.parse(args),
+            sources=SourcesConfig.parse(args),
         )
 
     def to_dict(self):
@@ -133,6 +161,55 @@ def parse_args():
         type=Path,
         default=None,
         help="File containing Bitcoin Core RPC password",
+    )
+
+    parser.add_argument(
+        "--record-rpc-getconnectioncount",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Measure number of connections (getconnectioncount via RPC)",
+    )
+
+    parser.add_argument(
+        "--record-rpc-getpeerinfo",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Record peer data (getpeerinfo via RPC)",
+    )
+
+    parser.add_argument(
+        "--record-rpc-gettxoutsetinfo",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Record UTXO set data (gettxoutsetinfo via RPC)",
+    )
+
+    parser.add_argument(
+        "--record-rpc-getnodeaddresses",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Record known peers addresses (getnodeaddresses via RPC)",
+    )
+
+    parser.add_argument(
+        "--record-rpc-getrawaddrman",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Record raw addrman data (getrawaddrman via RPC)",
+    )
+
+    parser.add_argument(
+        "--record-systemd-ip-accounting",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Record IP accounting statistics (via systemd)",
+    )
+
+    parser.add_argument(
+        "--record-tracepoints-net",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Record P2P network traffic (via tracepoints)",
     )
 
     args = parser.parse_args()
