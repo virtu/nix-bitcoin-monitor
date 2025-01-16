@@ -47,6 +47,7 @@ class Master:
         if self.conf.sources.systemd_ipaccounting:
             sources.append(systemd.IPAccounting(*args))
 
+        log.info("Active sources: %s", [src.__class__.__name__ for src in sources])
         return sources
 
     async def run(self):
