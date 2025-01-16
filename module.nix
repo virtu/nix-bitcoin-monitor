@@ -59,6 +59,16 @@ in
         example = "path/to/password.txt";
         description = mdDoc "File containing password for Bitcoin's RPC API.";
       };
+
+      sources = {
+        rpcGetconnectioncount = mkEnableOption "collecting getconnectioncount data (RPC)" // { default = true; };
+        rpcGetpeerinfo = mkEnableOption "collecting getpeerinfo data (RPC)" // { default = true; };
+        rpcGettxoutsetinfo = mkEnableOption "collecting gettxoutsetinfo data (RPC)" // { default = true; };
+        rpcGetnodeaddresses = mkEnableOption "collecting getnodeaddresses data (RPC)" // { default = true; };
+        rpcGetrawaddrman = mkEnableOption "collecting getrawaddrman data (RPC)" // { default = true; };
+        tracepointsNet = mkEnableOption "collecting net group data (tracepoints)" // { default = true; };
+        systemdIPAccounting = mkEnableOption "collecting IP accounting statistics (systemd)" // { default = true; };
+      };
     };
   };
 
@@ -98,6 +108,13 @@ in
           --rpc-user=${cfg.bitcoinRpcUser} \
           ${optionalString (cfg.bitcoinRpcPass != null) "--rpc-password=${cfg.bitcoinRpcPass}" } \
           ${optionalString (cfg.bitcoinRpcPassFile != null) "--rpc-password-file=${cfg.bitcoinRpcPassFile}" } \
+          ${if cfg.sources.rpcGetconnectioncount then "--record-rpc-getconnectioncount" else "--no-record-rpc-getconnectioncount"} \
+          ${if cfg.sources.rpcGetpeerinfo then "--record-rpc-getpeerinfo" else "--no-record-rpc-getpeerinfo"} \
+          ${if cfg.sources.rpcGettxoutsetinfo then "--record-rpc-gettxoutsetinfo" else "--no-record-rpc-gettxoutsetinfo"} \
+          ${if cfg.sources.rpcGetnodeaddresses then "--record-rpc-getnodeaddresses" else "--no-record-rpc-getnodeaddresses"} \
+          ${if cfg.sources.rpcGetrawaddrman then "--record-rpc-getrawaddrman" else "--no-record-rpc-getrawaddrman"} \
+          ${if cfg.sources.tracepointsNet then "--record-tracepoints-net" else "--no-record-tracepoints-net"} \
+          ${if cfg.sources.systemdIPAccounting then "--record-systemd-ip-accounting" else "--no-record-systemd-ip-accounting"} \
         '';
         Restart = "on-failure";
         RestartSec = "60s";
