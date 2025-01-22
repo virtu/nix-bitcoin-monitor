@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bitcoin-monitor"
-version = "1.6.0"
+version = "1.7.0"
 description = "Monitoring infrastructure for Bitcoin Core"
 authors = ["virtu <virtu@cryptic.to>"]
 license = "AGPLv3"
