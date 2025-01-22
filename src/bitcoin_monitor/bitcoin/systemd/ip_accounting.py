@@ -149,8 +149,11 @@ class IPAccounting:
         :param list data: a list of dicts containing data to be written
         """
 
-        file = Path(f"{self.results_path}/{self.CALL_NAME}.csv")
+        date = data[0]["timestamp"].split("T")[0]
+        file = Path(f"{self.results_path}/systemd/{self.CALL_NAME}/{date}.csv")
+
         file_exists = file.exists()
+        file.parent.mkdir(parents=True, exist_ok=True)
         with open(file, "a", newline="", encoding="UTF-8") as f:
             csv_writer = csv.DictWriter(f, fieldnames=["timestamp"] + self.CSV_FIELDS)
             if not file_exists:
