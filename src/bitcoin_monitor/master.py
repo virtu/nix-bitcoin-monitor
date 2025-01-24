@@ -5,7 +5,7 @@ import logging as log
 from dataclasses import dataclass
 from functools import cached_property
 
-from .bitcoin import rpc, systemd, tracepoints
+from .bitcoin import iptables, rpc, systemd, tracepoints
 from .config import Config
 
 
@@ -46,6 +46,11 @@ class Master:
         args = (self.conf.results_path,)
         if self.conf.sources.systemd_ipaccounting:
             sources.append(systemd.IPAccounting(*args))
+
+        # iptables sources
+        args = (self.conf.results_path,)
+        if self.conf.sources.iptables_p2ptraffic:
+            sources.append(iptables.P2PTraffic(*args))
 
         log.info("Active sources: %s", [src.__class__.__name__ for src in sources])
         return sources

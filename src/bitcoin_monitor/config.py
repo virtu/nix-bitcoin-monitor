@@ -64,6 +64,7 @@ class SourcesConfig:
     rpc_getnodeaddresses: bool
     rpc_getrawaddrman: bool
     systemd_ipaccounting: bool
+    iptables_p2ptraffic: bool
     tracepoints_net: bool
 
     @classmethod
@@ -76,6 +77,7 @@ class SourcesConfig:
             rpc_getnodeaddresses=args.record_rpc_getnodeaddresses,
             rpc_getrawaddrman=args.record_rpc_getrawaddrman,
             systemd_ipaccounting=args.record_systemd_ip_accounting,
+            iptables_p2ptraffic=args.record_iptables_p2p_traffic,
             tracepoints_net=args.record_tracepoints_net,
         )
 
@@ -203,6 +205,13 @@ def parse_args():
         action=argparse.BooleanOptionalAction,
         default=True,
         help="Record IP accounting statistics (via systemd)",
+    )
+
+    parser.add_argument(
+        "--record-iptables-p2p-traffic",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Record Bitcoin Core P2P traffic (via iptables)",
     )
 
     parser.add_argument(

@@ -68,6 +68,7 @@ in
         rpcGetrawaddrman = mkEnableOption "collecting getrawaddrman data (RPC)" // { default = true; };
         tracepointsNet = mkEnableOption "collecting net group data (tracepoints)" // { default = true; };
         systemdIPAccounting = mkEnableOption "collecting IP accounting statistics (systemd)" // { default = true; };
+        iptablesP2PTraffic = mkEnableOption "collecting Bitcoin Core P2P traffic (iptables)" // { default = true; };
       };
     };
   };
@@ -85,6 +86,12 @@ in
       };
       groups.nix-bitcoin-monitor = { };
     };
+
+    # if Bitcoin Core P2P traffic measurement via iptables is enabled, add appropriate iptables rules
+    networking.firewall.extraCommands = lib.mkIf cfg.sources.iptablesP2PTraffic ''
+      iptables -I INPUT -p tcp --dport 8333 -j ACCEPT -m comment --comment "bitcoind_p2p_in"
+      iptables -I OUTPUT -p tcp --sport 8333 -j ACCEPT -m comment --comment "bitcoind_p2p_out"
+    '';
 
     systemd.services.nix-bitcoin-monitor = {
       description = "Monitoring infrastructure for Bitcoin Core";
@@ -115,6 +122,7 @@ in
           ${if cfg.sources.rpcGetrawaddrman then "--record-rpc-getrawaddrman" else "--no-record-rpc-getrawaddrman"} \
           ${if cfg.sources.tracepointsNet then "--record-tracepoints-net" else "--no-record-tracepoints-net"} \
           ${if cfg.sources.systemdIPAccounting then "--record-systemd-ip-accounting" else "--no-record-systemd-ip-accounting"} \
+          ${if cfg.sources.iptablesP2PTraffic then "--record-iptables-p2p-traffic" else "--no-record-iptables-p2p-traffic"} \
         '';
         Restart = "on-failure";
         RestartSec = "60s";
