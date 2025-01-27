@@ -97,7 +97,7 @@ def human_readable_time(sec: float) -> str:
 
 
 @dataclass
-class Net:
+class Traffic:
     """
     Class implementing the collection of IP accounting statistics for the
     bitcoind service via systemd.
@@ -107,7 +107,7 @@ class Net:
     peers = {}
     messages = []
     FREQUENCY: ClassVar[int] = 5  # 5 seconds
-    CALL_NAME: ClassVar[str] = "net"
+    CALL_NAME: ClassVar[str] = "traffic"
     # TODO: not used here, probably should be. need to figure out field names
     CSV_FIELDS: ClassVar[list[str]] = [
         "peer_id",

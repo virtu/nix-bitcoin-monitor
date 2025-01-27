@@ -41,6 +41,8 @@ class Master:
         args = (self.conf.results_path,)
         if self.conf.sources.tracepoints_net:
             sources.append(tracepoints.Net(*args))
+        # TODO: if-guard
+        sources.append(tracepoints.Traffic(*args))
 
         # systemd sources
         args = (self.conf.results_path,)
